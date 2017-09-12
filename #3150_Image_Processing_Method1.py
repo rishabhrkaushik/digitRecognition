@@ -12,7 +12,7 @@ def ocrDigit(crop):
 
 	binary = cv2.threshold(crop, binary_threshold, 255, cv2.THRESH_BINARY)[1]		#Convert image to binary
 
-	__, contours, __ = cv2.findContours(binary,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)[0]	#detect all contours in given cell
+	contours= cv2.findContours(binary,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)[1]	#detect all contours in given cell
 	
 	for c in contours:																#Filter contours and delete false detected contours
 		if(cv2.contourArea(c) > min_area and cv2.arcLength(c,True) < max_perimeter):#Check area and perimeter parameters if satisfied or not														
@@ -29,7 +29,7 @@ def ocrDigit(crop):
 		number_small = cv2.resize(number, (20, 20))									#Scale it to 20 * 20 matrix
 		number_small = number_small.reshape((1,400))								#Shape it tp 1 * 400 matrix
 		number_small = np.float32(number_small)										#Convert it to float32
-		retval, results, neigh_resp, dists = model.find_nearest(number_small, k = 1)#Compare this matrix with data initialy saved while training
+		retval, results, neigh_resp, dists = model.findNearest(number_small, 1)     #Compare this matrix with data initialy saved while training
 		tempResult = str(tempResult) + str(int(results[0][0]))						#Append detected digit with one detected earlier if any
 		tempResult = int(tempResult)												#Convert complete number back to string
 	return tempResult																#Return the result
@@ -157,21 +157,21 @@ if __name__ == "__main__":
 	binary_threshold = 10		#threshold for converting gray image to binary
 
 	#Uncomment follwing section and change parameters to retrain the model
-	trainImage = cv2.imread('test_image1.jpg')							#Open training image change if necesarry
-	if(trainImage is not None):
-		train(trainImage, "samples", "responses")							#Change samples and responses for changing file name of saved file
-	else:
-		print "Train image not loaded, check if it exists and check file name and path"
+	# trainImage = cv2.imread('test_image1.jpg')							#Open training image change if necesarry
+	# if(trainImage is not None):
+	# 	train(trainImage, "samples", "responses")							#Change samples and responses for changing file name of saved file
+	# else:
+	# 	print "Train image not loaded, check if it exists and check file name and path"
 	
     #Train Knn
 	samples = np.loadtxt('samples.data', np.float32)			#load sample data set created while training
 	responses = np.loadtxt('responses.data', np.float32)		#load response set created while training
 	responses = responses.reshape((responses.size,1))					#reshape responses
 	model = cv2.ml.KNearest_create()												#rename cv2.KNearest as model
-	model.train(samples, responses)										#train model
+	model.train(samples, cv2.ml.ROW_SAMPLE, responses)										#train model
 
 	#Check for image
-	img = cv2.imread('/test_images/test_image2.jpg')									#Load image
+	img = cv2.imread('./test_image2.jpg')									#Load image
 	if(img is not None):
 		No_pos_D1,No_pos_D2 = play(img)										#pass it to detect numbers
 		print No_pos_D1														#print first list
