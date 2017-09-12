@@ -1,5 +1,6 @@
 import numpy as np
 import cv2
+import sys
 
 #Teams can add other helper functions
 #which can be added here
@@ -11,7 +12,7 @@ def ocrDigit(crop):
 
 	binary = cv2.threshold(crop, binary_threshold, 255, cv2.THRESH_BINARY)[1]		#Convert image to binary
 
-	contours = cv2.findContours(binary,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)[0]	#detect all contours in given cell
+	__, contours, __ = cv2.findContours(binary,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)[0]	#detect all contours in given cell
 	
 	for c in contours:																#Filter contours and delete false detected contours
 		if(cv2.contourArea(c) > min_area and cv2.arcLength(c,True) < max_perimeter):#Check area and perimeter parameters if satisfied or not														
@@ -61,12 +62,12 @@ def train(trainImage, sampleName, responseName):
 	gray = cv2.cvtColor(trainImage, cv2.COLOR_BGR2GRAY)												#Convert train image to gray
 	thresh = cv2.threshold(gray, binary_threshold, 255, cv2.THRESH_BINARY)[1]						#Convert train image to binary
 
-	contours, hierarchy = cv2.findContours(thresh, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)			#detect Contours
+	__, contours, hierarchy = cv2.findContours(thresh, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)			#detect Contours
 	samples =  np.empty((0, 400))																	#Create empty array to contain training data
 	responses = []																					#Create empty list to contain responses
 
-	keys = [i for i in range(1048624, 1048634)]														#Create a list of keys, the number are those sent my keyboard, may need to recalibrate them
-	#keys = [i for i in range(48, 58)]																#Commented since 0 corresponds to 1048624 and 9 to 1048634 on my num pad
+	# keys = [i for i in range(1048624, 1048634)]														#Create a list of keys, the number are those sent my keyboard, may need to recalibrate them
+	keys = [i for i in range(48, 58)]																#Commented since 0 corresponds to 1048624 and 9 to 1048634 on my num pad
 
 	for contour in contours:																		#itterate over contours
 	    if(cv2.contourArea(contour) > min_area and cv2.arcLength(contour,True) < max_perimeter):	#if contour big enough
@@ -81,17 +82,18 @@ def train(trainImage, sampleName, responseName):
 		# show image and wait for keypress
 		cv2.imshow('Image', trainImage)																#Display image with bounding rectangle							
 		key = cv2.waitKey(0)																		#Wait for a key to be pressed
-		#print key 																					#Display the key number(used to recaliibrate keyboard mapping)
+		print "key", key 																					#Display the key number(used to recaliibrate keyboard mapping)
 
 		if key == 27:																				#if key is escape key
 		    sys.exit()																				#exit program
 		elif key in keys:																			#else if key is in numberic range
 		    sample = number_small.reshape((1,400))													#re_shape image to 1 * 400
 		    samples = np.append(samples,sample,0)													#append it to sample array
-		    responses.append(int(chr(key-1048576)))													#append the key pressed to response error
-		    print int(chr(key-1048576))																#Print the key pressed
+		    responses.append(int(key-48))													#append the key pressed to response error
+		    print int(key-48)																#Print the key pressed
 
 	print "training complete"
+	# print samples
 	np.savetxt(sampleName + '.data', samples)														#Save the samples
 	responses = np.array(responses, np.float32)														#convert responses to float32
 	responses = responses.reshape((responses.size,1))												#reshape responses
@@ -155,17 +157,17 @@ if __name__ == "__main__":
 	binary_threshold = 10		#threshold for converting gray image to binary
 
 	#Uncomment follwing section and change parameters to retrain the model
-	"""trainImage = cv2.imread('test_image1.jpg')							#Open training image change if necesarry
+	trainImage = cv2.imread('test_image1.jpg')							#Open training image change if necesarry
 	if(trainImage is not None):
 		train(trainImage, "samples", "responses")							#Change samples and responses for changing file name of saved file
 	else:
 		print "Train image not loaded, check if it exists and check file name and path"
-	"""
+	
     #Train Knn
 	samples = np.loadtxt('samples.data', np.float32)			#load sample data set created while training
 	responses = np.loadtxt('responses.data', np.float32)		#load response set created while training
 	responses = responses.reshape((responses.size,1))					#reshape responses
-	model = cv2.KNearest()												#rename cv2.KNearest as model
+	model = cv2.ml.KNearest_create()												#rename cv2.KNearest as model
 	model.train(samples, responses)										#train model
 
 	#Check for image
