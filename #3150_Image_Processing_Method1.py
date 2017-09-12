@@ -94,10 +94,10 @@ def train(trainImage, sampleName, responseName):
 
 	print "training complete"
 	# print samples
-	np.savetxt(sampleName + '.data', samples)														#Save the samples
+	np.savetxt('./trained_data/'+sampleName + '.data', samples)														#Save the samples
 	responses = np.array(responses, np.float32)														#convert responses to float32
 	responses = responses.reshape((responses.size,1))												#reshape responses
-	np.savetxt(responseName + '.data', responses)													#Save the responses
+	np.savetxt('./trained_data/'+responseName + '.data', responses)													#Save the responses
 	print str("Data saved as " + sampleName + '.data' + " and " + responseName + '.data')
 	cv2.destroyAllWindows()		#destroy all windows
 
@@ -157,21 +157,21 @@ if __name__ == "__main__":
 	binary_threshold = 10		#threshold for converting gray image to binary
 
 	#Uncomment follwing section and change parameters to retrain the model
-	# trainImage = cv2.imread('test_image1.jpg')							#Open training image change if necesarry
+	# trainImage = cv2.imread('./test_images/test_image1.jpg')							#Open training image change if necesarry
 	# if(trainImage is not None):
 	# 	train(trainImage, "samples", "responses")							#Change samples and responses for changing file name of saved file
 	# else:
 	# 	print "Train image not loaded, check if it exists and check file name and path"
 	
     #Train Knn
-	samples = np.loadtxt('samples.data', np.float32)			#load sample data set created while training
-	responses = np.loadtxt('responses.data', np.float32)		#load response set created while training
+	samples = np.loadtxt('./trained_data/samples.data', np.float32)			#load sample data set created while training
+	responses = np.loadtxt('./trained_data/responses.data', np.float32)		#load response set created while training
 	responses = responses.reshape((responses.size,1))					#reshape responses
 	model = cv2.ml.KNearest_create()												#rename cv2.KNearest as model
 	model.train(samples, cv2.ml.ROW_SAMPLE, responses)										#train model
 
 	#Check for image
-	img = cv2.imread('./test_image2.jpg')									#Load image
+	img = cv2.imread('./test_images/test_image2.jpg')									#Load image
 	if(img is not None):
 		No_pos_D1,No_pos_D2 = play(img)										#pass it to detect numbers
 		print No_pos_D1														#print first list
