@@ -10,7 +10,7 @@ def ocrDigit(crop, matrix):
 
 	binary = cv2.threshold(crop, binary_threshold, 255, cv2.THRESH_BINARY)[1]		#Convert image to binary
 
-	contours = cv2.findContours(binary,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)[0]	#detect all contours in given cell
+	contours = cv2.findContours(binary,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)[1]	#detect all contours in given cell
 	
 	for c in contours:																#Filter contours and delete false detected contours
 		if(cv2.contourArea(c) > min_area and cv2.arcLength(c,True) < max_perimeter):#Check area and perimeter parameters if satisfied or not														
@@ -28,7 +28,7 @@ def ocrDigit(crop, matrix):
 			number_small = cv2.resize(number, (20, 20))									#Scale it to 20 * 20 matrix
 			number_small = number_small.reshape((1,400))								#Shape it tp 1 * 400 matrix
 			number_small = np.float32(number_small)										#Convert it to float32
-			retval, results, neigh_resp, dists = model.find_nearest(number_small, k = 1)#Compare this matrix with data initialy saved while training
+			retval, results, neigh_resp, dists = model.findNearest(number_small, 1)#Compare this matrix with data initialy saved while training
 			No_pos_D1.append(int(results[0][0]))										#Append number detected to list
 		return No_pos_D1
 
@@ -40,7 +40,7 @@ def ocrDigit(crop, matrix):
 				number_small = cv2.resize(number, (20, 20))									#Scale it to 20 * 20 matrix
 				number_small = number_small.reshape((1,400))								#Shape it tp 1 * 400 matrix
 				number_small = np.float32(number_small)										#Convert it to float32
-				retval, results, neigh_resp, dists = model.find_nearest(number_small, k = 1)#Compare this matrix with data initialy saved while training
+				retval, results, neigh_resp, dists = model.findNearest(number_small, 1)#Compare this matrix with data initialy saved while training
 				tempResult = str(tempResult) + str(int(results[0][0]))						#Append detected digit with one detected earlier if any
 				tempResult = int(tempResult)												#Convert complete number back to string
 			No_pos_D2.append((centNumberD[2*i+j][0], centNumberD[2*i+j][1], tempResult)) 	#Append X and Y co-ordinate and contour along with contour to list
@@ -58,7 +58,7 @@ def displayContours(image):
 	imageBinary = cv2.threshold(gray, binary_threshold, 255, cv2.THRESH_BINARY)[1]	#binary image
 
 	#Find Contours
-	imageContours = cv2.findContours(imageBinary,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)[0]	#list of all contours
+	imageContours = cv2.findContours(imageBinary,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)[1]	#list of all contours
 
 	#iterate over contour list and delete flase contour
 	for c in imageContours:																#Loop to delete false detected contours
@@ -77,12 +77,12 @@ def train(trainImage, sampleName, responseName):
 	gray = cv2.cvtColor(trainImage, cv2.COLOR_BGR2GRAY)												#Convert train image to gray
 	thresh = cv2.threshold(gray, binary_threshold, 255, cv2.THRESH_BINARY)[1]						#Convert train image to binary
 
-	contours, hierarchy = cv2.findContours(thresh, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)			#detect Contours
+	__, contours, hierarchy = cv2.findContours(thresh, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)			#detect Contours
 	samples =  np.empty((0, 400))																	#Create empty array to contain training data
 	responses = []																					#Create empty list to contain responses
 
-	keys = [i for i in range(1048624, 1048634)]														#Create a list of keys, the number are those sent my keyboard, may need to recalibrate them
-	#keys = [i for i in range(48, 58)]																#Commented since 0 corresponds to 1048624 and 9 to 1048634 on my num pad
+	# keys = [i for i in range(1048624, 1048634)]														#Create a list of keys, the number are those sent my keyboard, may need to recalibrate them
+	keys = [i for i in range(48, 58)]																#Commented since 0 corresponds to 1048624 and 9 to 1048634 on my num pad
 
 	for contour in contours:																		#itterate over contours
 	    if(cv2.contourArea(contour) > min_area and cv2.arcLength(contour,True) < max_perimeter):	#if contour big enough
@@ -97,21 +97,22 @@ def train(trainImage, sampleName, responseName):
 		# show image and wait for keypress
 		cv2.imshow('Image', trainImage)																#Display image with bounding rectangle							
 		key = cv2.waitKey(0)																		#Wait for a key to be pressed
-		#print key 																					#Display the key number(used to recaliibrate keyboard mapping)
+		print "key", key 																					#Display the key number(used to recaliibrate keyboard mapping)
 
 		if key == 27:																				#if key is escape key
 		    sys.exit()																				#exit program
 		elif key in keys:																			#else if key is in numberic range
 		    sample = number_small.reshape((1,400))													#re_shape image to 1 * 400
 		    samples = np.append(samples,sample,0)													#append it to sample array
-		    responses.append(int(chr(key-1048576)))													#append the key pressed to response error
-		    print int(chr(key-1048576))																#Print the key pressed
+		    responses.append(int(key-48))													#append the key pressed to response error
+		    print int(key-48)																#Print the key pressed
 
 	print "training complete"
-	np.savetxt(sampleName + '.data', samples)														#Save the samples
+	# print samples
+	np.savetxt('./trained_data/'+sampleName + '.data', samples)														#Save the samples
 	responses = np.array(responses, np.float32)														#convert responses to float32
 	responses = responses.reshape((responses.size,1))												#reshape responses
-	np.savetxt(responseName + '.data', responses)													#Save the responses
+	np.savetxt('./trained_data/'+responseName + '.data', responses)													#Save the responses
 	print str("Data saved as " + sampleName + '.data' + " and " + responseName + '.data')
 	cv2.destroyAllWindows()		#destroy all windows
 
@@ -152,8 +153,8 @@ def play(img):
 
 	h, w= gray.shape 								#get height and width of image
 
-	left_matrix = gray[:, :(w/2.5)] 				#Left matrix crop
-	right_matrix = gray[:, (w/2.1):] 				#Right matrix crop
+	left_matrix = gray[:, :int(w/2.5)] 				#Left matrix crop
+	right_matrix = gray[:, int(w/2.1):] 				#Right matrix crop
 
 	No_pos_D1 = ocrDigit(left_matrix, 1) 			#send left matrix to ocrDigit function
 	No_pos_D2 = ocrDigit(right_matrix, 2)
@@ -168,21 +169,21 @@ if __name__ == "__main__":
 	binary_threshold = 10		#threshold for converting gray image to binary
 
 	#Uncomment follwing section and change parameters to retrain the model
-	"""trainImage = cv2.imread('test_image1.jpg')							#Open training image change if necesarry
-	if(trainImage is not None):
-		train(trainImage, "samples", "responses")							#Change samples and responses for changing file name of saved file
-	else:
-		print "Train image not loaded, check if it exists and check file name and path"
-	"""
+	# trainImage = cv2.imread('./test_images/test_image1.jpg')							#Open training image change if necesarry
+	# if(trainImage is not None):
+	# 	train(trainImage, "samples", "responses")							#Change samples and responses for changing file name of saved file
+	# else:
+	# 	print "Train image not loaded, check if it exists and check file name and path"
+	
     #Train Knn
-	samples = np.loadtxt('samples.data', np.float32)					#load sample data set created while training
-	responses = np.loadtxt('responses.data', np.float32)				#load response set created while training
+	samples = np.loadtxt('./trained_data/samples.data', np.float32)			#load sample data set created while training
+	responses = np.loadtxt('./trained_data/responses.data', np.float32)		#load response set created while training
 	responses = responses.reshape((responses.size,1))					#reshape responses
-	model = cv2.KNearest()												#rename cv2.KNearest as model
-	model.train(samples, responses)										#train model
+	model = cv2.ml.KNearest_create()												#rename cv2.KNearest as model
+	model.train(samples, cv2.ml.ROW_SAMPLE, responses)										#train model
 
 	#Check for image
-	img = cv2.imread('test_image1.jpg')										#Load image
+	img = cv2.imread('./test_images/test_image2.jpg')									#Load image
 	if(img is not None):
 		No_pos_D1,No_pos_D2 = play(img)										#pass it to detect numbers
 		print No_pos_D1														#print first list
