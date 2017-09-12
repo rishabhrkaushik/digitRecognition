@@ -43,7 +43,7 @@ def displayContours(image):
 	imageBinary = cv2.threshold(gray, binary_threshold, 255, cv2.THRESH_BINARY)[1]	#binary image
 
 	#Find Contours
-	imageContours = cv2.findContours(imageBinary,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)[0]	#list of all contours
+	imageContours = cv2.findContours(imageBinary,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)[1]	#list of all contours
 
 	#iterate over contour list and delete flase contour
 	for c in imageContours:																#Loop to delete false detected contours
